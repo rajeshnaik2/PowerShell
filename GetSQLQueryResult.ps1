@@ -1,4 +1,10 @@
-﻿#
+# This script can be used to runs a given SQL query and checks if the output returns any error flag. 
+For example if you want to check if the SQL database application returns NULL that means some issue with the application 
+or if you want to check if the SQL database application returns NOTNULL or more than n. rows that means some issue with the application  else application is working fine.
+This scipt is useful for creating SCOM alerts for monitoring applications based on SQL query it can be Oracle or MS SQL dababase.
+It returns Sucess or Failure (save in property bag) and can be used in SCOM MP or SCORCH runbook.
+Again I have not documented the logic etc. But I will once I get some time :
+
 # Version 1.1  Added ($strDesc.Length -eq 0) -or ($strDesc -eq $null) -or ($strDesc.Trim() -eq 0))
 # Version 1.2  Added feature to allow NON-SQL 32bit ODBC connetion and query.
 # Version 1.3  Added feature to allow NON-SQL 64bit ODBC connetion and query. Added username and password to connectionstring. Returns alert if ODBC or SQL syntax is not correct.
@@ -119,12 +125,6 @@ Param
 
     # use this variable to error lng only without showing password if any
     $l_Hide_Password_ConnectionString = $pConnectionString
-
-	#$strQuery = "with lastgoodrun as (select max(id) as Max_ID, max(runstart) as MAX_START, batchid  from [curium].[dbo].[batchRun] where RunSuccess in ('True') group by batchid),
-    #lastbadrun as (select max(id) as Max_ID, max(runstart) as MAX_START, batchid  from [curium].[dbo].[batchRun] where RunSuccess in ('False') group by batchid)
-    #select B.id, b.BusinessName, GR.Max_ID as max_good,GR.max_start , BR.Max_id as max_bad from [curium].[dbo].[batch] B left join lastgoodrun GR on B.id=GR.batchid
-    #left join lastbadrun BR on B.id=BR.batchid where     B.enabled = 'True'
-    #and ((BR.Max_id > GR.max_id) or (dateadd  (hh, case when datepart(dw, getdate()) =2 then (3 * 24) + 2 else 24+2 end, GR.max_start) < getdate()))"
 
     $PropertyBag = $api.CreatePropertyBag()
 
@@ -437,58 +437,9 @@ Param
 
     
 
-   
-
-
-
-function QuerySQL(
-  [Parameter(Mandatory=$true)]
-  $connectionString,
-  [Parameter(Mandatory=$true)]
-  $queryStatement,
-  [Parameter(Mandatory=$true)]
-  $timeout,
-  [Parameter(Mandatory=$true)]
-  $maxRows)
-{   
-  try
-  {
-    $connection = New-Object System.Data.OleDb.OleDbConnection $connectionString
-    $connection.Open()
-    $command = New-Object Data.OleDb.OleDbCommand $queryStatement,$connection
-    $command.CommandTimeout = $timeout
-    $adapter = New-Object System.Data.OleDb.OleDbDataAdapter $command
-    $dataset = New-Object System.Data.DataSet
-    [void] $adapter.Fill($dataSet)
-    $dataSet.Tables | Select-Object -Expand Rows | select -First $maxRows
-  }
-  finally
-  {
-    $connection.Close()
-  }   
-}
-
-
-function GetApplications(
-  [Parameter(Mandatory=$true)]
-  $connectionString,
-  [Parameter(Mandatory=$true)]
-  $applicationName
-  )
-{
-  #Get applications e.g. Select * from Sys.Databases Where name = 'curium'
-  $query = (("Select * from Sys.Databases Where name = '{0}'") -f $applicationName)
-
-  $applications = @(QuerySQL -connectionString $connectionString -queryStatement $Query -timeout 300 -maxRows 1000)
-  return $applications
-}
 
 Function IIf($If, $Right, $Wrong)
     {If ($If) {$Right} Else {$Wrong}}
-
-
-
-
 
 
 #Create Discovery Data
