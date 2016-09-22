@@ -1,5 +1,7 @@
 ﻿
 <############################################################################################################################################
+ Script to POST SOAP XML or to call REST API and return data in PopertyBag (for SCOM).
+ But you can use this scipt for other purpose only. I have not created any logic documents for this but I will once I get some time. :)
  New Features:
  
  Version 1.0
