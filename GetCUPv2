@@ -1,0 +1,85 @@
+ 
+
+# script to get CPU usage percentage for IIS each website hosted on IIS server
+#ipmo ServerManager
+#Add-WindowsFeature web-scripting-tools
+Import-module WebAdministration
+$GETCPU = @{
+Name = ‘CPU ‘
+Expression = {
+$ProcessPID = $_.ID
+
+$CpuCores = (Get-WMIObject Win32_ComputerSystem).NumberOfLogicalProcessors
+
+$var1 = (Get-WMIObject Win32_PerfFormattedData_PerfProc_Process |  where { $_.IDProcess -eq $ProcessPID }  | select Name).Name
+$Samples  = (Get-Counter "\Process($var1)\% Processor Time").CounterSamples
+$CookedValue = $Samples.CookedValue
+$Total = $CookedValue / $CpuCores
+$TotalCPUUsage = [Decimal]::Round($Total, 2)
+$TotalCPUUsage
+}
+}
+
+$GETPOOLNAME = @{
+Name = ‘POOLNAME’
+Expression = {
+#dir IIS:\AppPools\OperationsManager\WorkerProcesses
+$ProcessPID = $_.ID
+
+$AppPools = dir IIS:\AppPools
+
+$PoolName = “”
+foreach ($ap in $AppPools)
+{
+if ($ap.workerProcesses.Collection.processid -eq $ProcessPID)
+{
+$PoolName = $ap.Name.ToString()
+}
+}
+$PoolName
+}
+}
+
+cls
+$FromTime = get-date
+$FromTime = $FromTime.AddHours(2)
+do {
+            $processes  = Get-Process | Where{$_.ProcessName -eq “w3wp”}
+            foreach($process in $processes)
+            {
+                        #$process | SELECT ID, $GETPOOLNAME, Name, $GETCPU, StartTime, HandleCount,NPM, VM, WS, PM, CPU, @{Name="Date";Expression={get-date}}   | Export-Csv -NoTypeInformation -Path C:\Users\SathisMayilswamy\cpuINfo.csv -Append -force
+                        $process | SELECT ID, $GETPOOLNAME, Name, $GETCPU, @{Name="Date";Expression={Get-Date -format "yyyy:MM:dd:hh:mm:ss:fff"}}   | Export-Csv -NoTypeInformation -Path C:\Users\SathisMayilswamy\newCpuINfo.csv -Append -force
+                        
+                        <#
+                        "======================================="
+                        $process | SELECT $GETPOOLNAME
+                        $ProcessPID  = $process.id
+                        $Name = ‘CPU ‘
+                        $CpuCores = (Get-WMIObject Win32_ComputerSystem).NumberOfLogicalProcessors
+
+                        "CpuCores = " + $CpuCores
+                        
+                        $var1 = (Get-WMIObject Win32_PerfFormattedData_PerfProc_Process |  where { $_.IDProcess -eq $ProcessPID }  | select Name).Name
+                        "var1 = " + $var1
+
+                        $Samples  = (Get-Counter "\Process($var1)\% Processor Time").CounterSamples
+                        
+                        (Get-Counter "\Process($var1)\% Processor Time").CounterSamples
+                        "$Samples = " + $Samples
+
+                        $CookedValue = $Samples.CookedValue
+                        $Total = $CookedValue / $CpuCores
+                        $TotalCPUUsage = [Decimal]::Round($Total, 2)
+                        "$TotalCPUUsage = " + $TotalCPUUsage
+                        
+
+#>
+                        
+                        
+                        #| Export-Csv -NoTypeInformation -Path C:\Users\SathisMayilswamy\cpuINfo.csv -Append -force
+
+            }
+            
+}
+until ((get-date) -gt ($FromTime))
+ 
